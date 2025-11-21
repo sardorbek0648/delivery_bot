@@ -189,6 +189,56 @@ def phone_html_link(phone: str) -> str:
 def generate_otp(length: int = 5) -> str:
     return ''.join(str(random.randint(0, 9)) for _ in range(length))
 
+
+def product_price(name: str) -> int:
+    for cat in menu_data.values():
+        if name in cat:
+            return cat[name]['price']
+    return 0
+
+
+def build_superadmin_order_text(order: dict) -> str:
+    parts = []
+    parts.append(f"📝 Buyurtma #{order['order_number']} — {order.get('status')}")
+    parts.append(f"👤 {html.escape(order.get('user',''))}")
+    parts.append(f"📞 {phone_html_link(order.get('phone'))}")
+    parts.append("")
+    items = order.get('items', [])
+    for i, it in enumerate(items):
+        parts.append(f"{i+1}. {html.escape(it)}")
+    parts.append("")
+    parts.append(f"💰 Jami: {order.get('total',0)} so'm")
+    parts.append(f"📍 Manzil: https://www.google.com/maps/search/?api=1&query={html.escape(order.get('loc',''))}")
+    return "\n".join(parts)
+
+
+def build_superadmin_kb(order: dict) -> InlineKeyboardMarkup:
+    rows = []
+    items = order.get('items', [])
+    for idx, it in enumerate(items):
+        rows.append([
+            InlineKeyboardButton("➖", callback_data=f"sa_dec_{order['order_number']}_{idx}"),
+            InlineKeyboardButton(f"{it}", callback_data="noop"),
+            InlineKeyboardButton("➕", callback_data=f"sa_inc_{order['order_number']}_{idx}")
+        ])
+    rows.append([
+        InlineKeyboardButton("➕ Mahsulot qo'shish", callback_data=f"sa_add_{order['order_number']}"),
+        InlineKeyboardButton("✅ Kanalga yangilash", callback_data=f"sa_done_{order['order_number']}"),
+        InlineKeyboardButton("❌ Bekor", callback_data=f"sa_canceledit_{order['order_number']}")
+    ])
+    return InlineKeyboardMarkup(rows)
+
+
+async def send_superadmin_order_report(bot, order: dict):
+    try:
+        text = build_superadmin_order_text(order)
+        kb = build_superadmin_kb(order)
+        msg = await bot.send_message(chat_id=SUPERADMIN_CHANNEL_ID, text=text, reply_markup=kb, parse_mode="HTML", disable_web_page_preview=True)
+        order['superadmin_msg'] = {'chat_id': msg.chat_id, 'message_id': msg.message_id}
+        persist_orders()
+    except Exception as e:
+        log.warning(f"Superadminga buyurtma hisobotini yuborishda xato: {e}")
+
 # ========== BUYURTMA STATUSI UCHUN KBIT ==========
 def generate_admin_order_kb(order: dict, show_cancel: bool = True) -> InlineKeyboardMarkup:
     """Admin uchun buyurtma statusini o'zgartirish tugmalarini yaratadi.
@@ -245,6 +295,11 @@ async def handle_order_expiry(order_number: int, bot):
                 await report_superadmin(bot, sa_text)
             except Exception as e:
                 log.warning(f"Superadminga publish hisobotini yuborishda xato: {e}")
+                # structured superadmin report (allows inline editing)
+                try:
+                    await send_superadmin_order_report(bot, order)
+                except Exception:
+                    pass
         except Exception as e:
             log.warning(f"Kanalga buyurtma yuborishda xato (expiry): {e}")
 
@@ -406,6 +461,104 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception as e:
                 log.warning(f"OTP yuborishda xato: {e}")
         return
+
+    # --- Super-admin inline tahrir callbacklari ---
+    if data.startswith('sa_inc_') or data.startswith('sa_dec_') or data.startswith('sa_add_') or data.startswith('sa_done_') or data.startswith('sa_canceledit_'):
+        if uid not in admins:
+            await query.answer('Sizda ruxsat yo\'q', show_alert=True); return
+
+        parts = data.split('_')
+        # format: sa_inc_<order>_<idx>
+        action = parts[1] if len(parts) > 1 else ''
+        if action in ('inc', 'dec'):
+            try:
+                order_num = int(parts[2]); idx = int(parts[3])
+            except Exception:
+                await query.answer('Noto\'g\'ri buyruq', show_alert=True); return
+            order = find_order(order_num)
+            if not order: await query.answer('Buyurtma topilmadi', show_alert=True); return
+            items = list(order.get('items', []))
+            if idx < 0 or idx >= len(items): await query.answer('Indeks xato', show_alert=True); return
+            it = items[idx]
+            if ' x' in it:
+                name, qty_str = it.rsplit(' x', 1)
+                try: qty = int(qty_str)
+                except Exception: qty = 1
+            else:
+                name = it; qty = 1
+            if action == 'inc': qty += 1
+            else: qty = max(1, qty - 1)
+            items[idx] = f"{name} x{qty}"
+            # recompute total
+            total = 0
+            for it2 in items:
+                if ' x' in it2:
+                    nm, q = it2.rsplit(' x', 1); q = int(q)
+                else:
+                    nm = it2; q = 1
+                total += product_price(nm) * q
+            order['items'] = items
+            order['total'] = total
+            persist_orders()
+            # update superadmin message
+            sam = order.get('superadmin_msg')
+            if sam:
+                try:
+                    await context.bot.edit_message_text(chat_id=sam['chat_id'], message_id=sam['message_id'], text=build_superadmin_order_text(order), reply_markup=build_superadmin_kb(order), parse_mode='HTML')
+                except Exception:
+                    pass
+            await query.answer('Yangilandi')
+            return
+
+        if action == 'add':
+            try: order_num = int(parts[2])
+            except Exception: await query.answer('Noto\'g\'ri buyruq', show_alert=True); return
+            # prompt admin to send product as: Name | qty
+            context.user_data['sa_adding_order'] = order_num
+            await query.answer('Iltimos, mahsulot nomi va miqdorini "Nomi | miqdor" formatida yuboring.')
+            try: await query.edit_message_text('Mahsulot qo\'shish uchun nom va miqdorni yuboring (masalan: Lavash | 1)')
+            except Exception: pass
+            return
+
+        if action == 'done':
+            try: order_num = int(parts[2])
+            except Exception: await query.answer('Noto\'g\'ri buyruq', show_alert=True); return
+            order = find_order(order_num)
+            if not order: await query.answer('Buyurtma topilmadi', show_alert=True); return
+            # post to channel
+            order['status'] = 'Kanalda'
+            try:
+                kanal_text = f"🆕 Yangi buyurtma #{order_num}!\n\n{order.get('original_text','')}\n\n👤 {order.get('user')}\n📞 {normalize_phone(order.get('phone'))}\n📍 https://www.google.com/maps/search/?api=1&query={order.get('loc')}"
+                msg = await context.bot.send_message(chat_id=BUYURTMALAR_CHANNEL_ID, text=kanal_text, reply_markup=generate_admin_order_kb(order, show_cancel=False, show_edit=False))
+                order['admin_msgs'] = [{'admin_id': BUYURTMALAR_CHANNEL_ID, 'chat_id': msg.chat_id, 'message_id': msg.message_id, 'text': order.get('original_text','')}]
+                persist_orders()
+            except Exception as e:
+                log.warning(f"Kanalga yuborishda xato (sa_done): {e}")
+            # update superadmin message to indicate done
+            sam = order.get('superadmin_msg')
+            if sam:
+                try:
+                    await context.bot.edit_message_text(chat_id=sam['chat_id'], message_id=sam['message_id'], text=build_superadmin_order_text(order) + "\n\n✅ Kanalga yuborildi.")
+                except Exception:
+                    pass
+            await query.answer('Buyurtma kanalga yuborildi')
+            return
+
+        if action == 'canceledit':
+            try: order_num = int(parts[2])
+            except Exception: await query.answer('Noto\'g\'ri buyruq', show_alert=True); return
+            order = find_order(order_num)
+            if not order: await query.answer('Buyurtma topilmadi', show_alert=True); return
+            sam = order.get('superadmin_msg')
+            if sam:
+                try:
+                    await context.bot.edit_message_text(chat_id=sam['chat_id'], message_id=sam['message_id'], text=build_superadmin_order_text(order) + "\n\n❌ Tahrirlash bekor qilindi.")
+                except Exception:
+                    pass
+            order.pop('superadmin_msg', None)
+            persist_orders()
+            await query.answer('Tahrirlash bekor qilindi')
+            return
 
     # --- Yetkazib beruvchi (courier) funksiyalari ---
     # Qabul qilish: faqat couriers ro'yxatidagi foydalanuvchilar qila oladi
@@ -808,6 +961,45 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else:
                     await update.message.reply_text("ℹ️ Bu ID yetkazib beruvchilar ro‘yxatida yo‘q.", reply_markup=admin_panel_kb())
             except ValueError: await update.message.reply_text("❌ Xato ID.", reply_markup=admin_panel_kb()); return
+    # Admin adding product via super-admin add flow
+    if uid in admins and ud.get('sa_adding_order'):
+        try:
+            order_num = int(ud.pop('sa_adding_order'))
+        except Exception:
+            await update.message.reply_text('Noto\'g\'ri buyruq yoki vaqt tugadi.'); return
+        order = find_order(order_num)
+        if not order:
+            await update.message.reply_text('Buyurtma topilmadi.'); return
+        # expect text like: Name | qty
+        if '|' not in text:
+            await update.message.reply_text('Format: Nomi | miqdor (masalan: Lavash | 1)'); return
+        name_part, qty_part = text.split('|', 1)
+        name = name_part.strip()
+        try: qty = int(qty_part.strip())
+        except Exception:
+            await update.message.reply_text('Miqdor butun son bo\'lishi kerak.'); return
+        items = list(order.get('items', []))
+        items.append(f"{name} x{qty}")
+        # recompute total
+        total = 0
+        for it in items:
+            if ' x' in it:
+                nm, q = it.rsplit(' x', 1); q = int(q)
+            else:
+                nm = it; q = 1
+            total += product_price(nm) * q
+        order['items'] = items
+        order['total'] = total
+        persist_orders()
+        # update superadmin message if exists
+        sam = order.get('superadmin_msg')
+        if sam:
+            try:
+                await context.bot.edit_message_text(chat_id=sam['chat_id'], message_id=sam['message_id'], text=build_superadmin_order_text(order), reply_markup=build_superadmin_kb(order), parse_mode='HTML')
+            except Exception:
+                pass
+        await update.message.reply_text('✅ Mahsulot qo\'shildi va super-admin oynasi yangilandi.')
+        return
     if ud.get("checkout_state") == "ask_phone" and text:
         ud["phone"] = text; ud["checkout_state"] = "ask_location"
         kb = ReplyKeyboardMarkup([[KeyboardButton("📍 Lokatsiyani ulashish", request_location=True)]], resize_keyboard=True, one_time_keyboard=True)
