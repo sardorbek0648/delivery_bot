@@ -36,6 +36,7 @@ USERS_FILE = "users.json"
 ORDERS_FILE = "orders.json"
 COURIERS_FILE = "couriers.json"
 EARNINGS_FILE = "earnings.json"
+MENU_FILE = "menu.json"
 
 # Buyurtmalar kanalining chat ID (o'zgartirdingiz):
 BUYURTMALAR_CHANNEL_ID = -1003357292759
@@ -95,12 +96,24 @@ menu_data = {
     "Taomlar": {"Palov": {"price": 35000, "desc": "An'anaviy o‘zbek taomi"}, "Manti": {"price": 30000, "desc": "Bug‘da pishirilgan manti"}},
 }
 
+# Load persisted menu if exists
+_loaded_menu = load_json(MENU_FILE, None)
+if isinstance(_loaded_menu, dict):
+    menu_data = _loaded_menu
+
+def persist_menu():
+    try:
+        save_json(MENU_FILE, menu_data)
+    except Exception as e:
+        log.warning(f"Menyuni saqlashda xato: {e}")
+
 def admin_panel_kb() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("📦 Faol buyurtmalar", callback_data="admin_orders")],
         [InlineKeyboardButton("📣 Kanaldagi e'lonlar", callback_data="admin_published")],
         [InlineKeyboardButton("🧹 Barcha buyurtmalarni tozalash", callback_data="admin_clear_all_orders")],
         [InlineKeyboardButton("📢 Broadcast", callback_data="admin_broadcast")],
+        [InlineKeyboardButton("🧾 Menyuni tahrirlash", callback_data="admin_edit_menu")],
         [InlineKeyboardButton("➕ Yangi admin", callback_data="admin_add")],
         [InlineKeyboardButton("❌ Adminni olib tashlash", callback_data="admin_remove")],
         [InlineKeyboardButton("➕ Yetkazib beruvchi", callback_data="admin_add_courier")],
@@ -240,7 +253,7 @@ async def send_superadmin_order_report(bot, order: dict):
         log.warning(f"Superadminga buyurtma hisobotini yuborishda xato: {e}")
 
 # ========== BUYURTMA STATUSI UCHUN KBIT ==========
-def generate_admin_order_kb(order: dict, show_cancel: bool = True) -> InlineKeyboardMarkup:
+def generate_admin_order_kb(order: dict, show_cancel: bool = True, show_edit: bool = True) -> InlineKeyboardMarkup:
     """Admin uchun buyurtma statusini o'zgartirish tugmalarini yaratadi.
     show_cancel: agar False bo'lsa, bekor qilish tugmasi qo'shilmaydi (kanal postlari uchun).
     """
@@ -259,6 +272,9 @@ def generate_admin_order_kb(order: dict, show_cancel: bool = True) -> InlineKeyb
     if show_cancel and status != 'Yetkazib berildi':
         buttons.append(InlineKeyboardButton(f"❌ Bekor qilish", callback_data=f"cancel_order_{order_num}"))
 
+    # optionally add edit button for admins
+    if show_edit and status != 'Yetkazib berildi':
+        buttons.append(InlineKeyboardButton('✏️ Tahrirlash', callback_data=f'admin_edit_{order_num}'))
     return InlineKeyboardMarkup([buttons])
 
 # ========== BUYURTMA TAYMERI VAZIFASI ==========
@@ -363,6 +379,24 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 # Adminlar kanaldagi buyurtmani shu yerdan bekor qilishi mumkin
                 await context.bot.send_message(chat_id=uid, text=order_text, reply_markup=generate_admin_order_kb(o, show_cancel=True), parse_mode="Markdown")
             return
+        if data.startswith('admin_edit_'):
+            try: order_num = int(data.split('_')[-1])
+            except Exception:
+                await query.answer('Noto\'g\'ri buyruq', show_alert=True); return
+            order = find_order(order_num)
+            if not order: await query.answer('Buyurtma topilmadi', show_alert=True); return
+            # send editable superadmin report to admin privately
+            try:
+                text = build_superadmin_order_text(order)
+                kb = build_superadmin_kb(order)
+                msg = await context.bot.send_message(chat_id=uid, text=text, reply_markup=kb, parse_mode='HTML', disable_web_page_preview=True)
+                order['superadmin_msg'] = {'chat_id': msg.chat_id, 'message_id': msg.message_id}
+                persist_orders()
+                await query.answer('Tahrirlash oynasi yuborildi.')
+            except Exception as e:
+                log.warning(f'admin_edit_ error: {e}')
+                await query.answer('Xatolik yuz berdi', show_alert=True)
+            return
         
         if data == "admin_clear_all_orders":
             global order_counter
@@ -416,6 +450,18 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if data == "admin_remove": ud["want_remove_admin"] = True; await query.edit_message_text("❌ O'chiriladigan admin ID raqamini kiriting:", reply_markup=admin_panel_kb()); return
         if data == "admin_add_courier": ud["want_add_courier"] = True; await query.edit_message_text("➕ Yetkazib beruvchi ID raqamini kiriting:", reply_markup=admin_panel_kb()); return
         if data == "admin_remove_courier": ud["want_remove_courier"] = True; await query.edit_message_text("❌ O'chiriladigan yetkazib beruvchi ID raqamini kiriting:", reply_markup=admin_panel_kb()); return
+        if data == "admin_edit_menu":
+            ud["want_menu_action"] = True
+            examples = (
+                "Menyu tahriri uchun formatlar:\n"
+                "addcat: KategoriyaNomi\n"
+                "delcat: KategoriyaNomi\n"
+                "additem: Kategoriya | Mahsulot nomi | narx | tavsif\n"
+                "delitem: Kategoriya | Mahsulot nomi\n"
+                "edititem: Kategoriya | Mahsulot nomi | narx | tavsif\n"
+            )
+            await query.edit_message_text("🧾 Menyuni tahrirlash rejimi. Iltimos yuqoridagi formatlardan birida xabar yuboring:\n\n" + examples, reply_markup=admin_panel_kb())
+            return
     # Payment callbacks (user finishing checkout)
     if data == 'pay_cash' or data == 'pay_card':
         is_cash = (data == 'pay_cash')
@@ -890,11 +936,19 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
     if uid in admins:
         if ud.get("want_broadcast"):
-            ud.pop("want_broadcast", None); sent, failed = 0, 0
+            ud.pop("want_broadcast", None)
+            sent, failed = 0, 0
+            # Forward the entire incoming message to all users to preserve media types
             for user_id in list(users):
-                try: await context.bot.send_message(chat_id=user_id, text=text); sent += 1
-                except Exception as e: failed += 1; log.warning(f"Broadcastda xato ({user_id}): {e}")
-            await update.message.reply_text(f"✅ Xabar yuborildi.\nMuvaffaqiyatli: {sent}\nXatolik: {failed}", reply_markup=admin_panel_kb()); return
+                try:
+                    # forward preserves original media (text, photo, video, voice, etc.)
+                    await context.bot.forward_message(chat_id=user_id, from_chat_id=update.effective_chat.id, message_id=update.message.message_id)
+                    sent += 1
+                except Exception as e:
+                    failed += 1
+                    log.warning(f"Broadcastda xato ({user_id}): {e}")
+            await update.message.reply_text(f"✅ Broadcast tugadi.\nMuvaffaqiyatli: {sent}\nXatolik: {failed}", reply_markup=admin_panel_kb())
+            return
         if ud.get("want_add_admin"):
             ud.pop("want_add_admin", None)
             try:
@@ -961,6 +1015,52 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 else:
                     await update.message.reply_text("ℹ️ Bu ID yetkazib beruvchilar ro‘yxatida yo‘q.", reply_markup=admin_panel_kb())
             except ValueError: await update.message.reply_text("❌ Xato ID.", reply_markup=admin_panel_kb()); return
+    # Menu edit handling (admin)
+    if uid in admins and ud.get('want_menu_action'):
+        ud.pop('want_menu_action', None)
+        cmd = text.strip()
+        # parse commands
+        try:
+            if cmd.lower().startswith('addcat:'):
+                name = cmd.split(':',1)[1].strip()
+                if name in menu_data:
+                    await update.message.reply_text('⚠️ Bunday kategoriya allaqachon mavjud.')
+                else:
+                    menu_data[name] = {}
+                    persist_menu()
+                    await update.message.reply_text(f'✅ Kategoriya "{name}" qo\'shildi.')
+                return
+            if cmd.lower().startswith('delcat:'):
+                name = cmd.split(':',1)[1].strip()
+                if name in menu_data:
+                    del menu_data[name]; persist_menu(); await update.message.reply_text(f'✅ Kategoriya "{name}" o\'chirildi.')
+                else:
+                    await update.message.reply_text('⚠️ Bunday kategoriya topilmadi.')
+                return
+            if cmd.lower().startswith('additem:'):
+                rest = cmd.split(':',1)[1].strip()
+                parts = [p.strip() for p in rest.split('|')]
+                if len(parts) < 3:
+                    await update.message.reply_text('Format xato. additem: Kategoriya | Nomi | Narx | Tavsif(majburiy emas)'); return
+                cat, name, price = parts[0], parts[1], int(parts[2])
+                desc = parts[3] if len(parts) > 3 else ''
+                if cat not in menu_data: menu_data[cat] = {}
+                menu_data[cat][name] = {'price': price, 'desc': desc}
+                persist_menu(); await update.message.reply_text(f'✅ Mahsulot "{name}" {cat} ga qo\'shildi.'); return
+            if cmd.lower().startswith('delitem:'):
+                rest = cmd.split(':',1)[1].strip(); parts = [p.strip() for p in rest.split('|')]
+                if len(parts) < 2: await update.message.reply_text('Format: delitem: Kategoriya | Nomi'); return
+                cat, name = parts[0], parts[1]
+                if cat in menu_data and name in menu_data[cat]: del menu_data[cat][name]; persist_menu(); await update.message.reply_text(f'✅ "{name}" o\'chirildi.'); return
+            if cmd.lower().startswith('edititem:'):
+                rest = cmd.split(':',1)[1].strip(); parts = [p.strip() for p in rest.split('|')]
+                if len(parts) < 3: await update.message.reply_text('Format: edititem: Kategoriya | Nomi | Narx | Tavsif(majburiy emas)'); return
+                cat, name, price = parts[0], parts[1], int(parts[2]); desc = parts[3] if len(parts) > 3 else ''
+                if cat in menu_data and name in menu_data[cat]: menu_data[cat][name] = {'price': price, 'desc': desc}; persist_menu(); await update.message.reply_text('✅ Mahsulot yangilandi.'); return
+        except Exception as e:
+            log.warning(f"Menu edit error: {e}")
+            await update.message.reply_text('❌ Menu tahriri xatolik yuz berdi. Formatni tekshiring.')
+        return
     # Admin adding product via super-admin add flow
     if uid in admins and ud.get('sa_adding_order'):
         try:
