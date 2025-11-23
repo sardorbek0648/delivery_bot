@@ -99,34 +99,6 @@
     "collected_amount": 11000
   },
   {
-    "order_number": 4,
-    "user_id": 6100584837,
-    "user": "Sardorbek Fozilov (id: 6100584837)",
-    "items": [
-      "Coca Cola 1l x1"
-    ],
-    "total": 11000,
-    "phone": "998992861706",
-    "loc": "40.62856,72.50083",
-    "dt": "2025-11-21T04:44:11.572097+00:00",
-    "status": "Kanalda",
-    "user_msg": {
-      "chat_id": 6100584837,
-      "message_id": 1745
-    },
-    "admin_msgs": [
-      {
-        "admin_id": -1003357292759,
-        "chat_id": -1003357292759,
-        "message_id": 23,
-        "text": "🛒 Savat:\n• Coca Cola 1l x1 — 11000 so‘m\n\nJami: 11000 so‘m"
-      }
-    ],
-    "original_text": "🛒 Savat:\n• Coca Cola 1l x1 — 11000 so‘m\n\nJami: 11000 so‘m",
-    "payment": "cash",
-    "otp": "93815"
-  },
-  {
     "order_number": 5,
     "user_id": 6100584837,
     "user": "Sardorbek Fozilov (id: 6100584837)",
@@ -164,27 +136,461 @@
     "user_id": 6100584837,
     "user": "Sardorbek Fozilov (id: 6100584837)",
     "items": [
-      "Hot Dog x4"
+      "Coca Cola 1.5l x4",
+      "Hot Dog x1"
     ],
-    "total": 72000,
+    "total": 74000,
     "phone": "998992861706",
-    "loc": "40.62859,72.50083",
-    "dt": "2025-11-21T09:44:13.849299+00:00",
+    "loc": "40.63002,72.53373",
+    "dt": "2025-11-21T16:21:52.076132+00:00",
     "status": "Kanalda",
     "user_msg": {
       "chat_id": 6100584837,
-      "message_id": 1773
+      "message_id": 2030
+    },
+    "admin_msgs": [],
+    "original_text": "🛒 Savat:\n• Coca Cola 1.5l x4 — 56000 so‘m\n• Hot Dog x1 — 18000 so‘m\n\nJami: 74000 so‘m",
+    "payment": "cash",
+    "otp": "32777"
+  },
+  {
+    "order_number": 7,
+    "user_id": 6100584837,
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Coca Cola 1l x2"
+    ],
+    "total": 22000,
+    "phone": "+998992861706",
+    "loc": "40.63070,72.53254",
+    "dt": "2025-11-21T16:43:13.367934+00:00",
+    "status": "Kanalda",
+    "user_msg": {
+      "chat_id": 6100584837,
+      "message_id": 2066
     },
     "admin_msgs": [
       {
         "admin_id": -1003357292759,
         "chat_id": -1003357292759,
-        "message_id": 27,
-        "text": "🛒 Savat:\n• Hot Dog x4 — 72000 so‘m\n\nJami: 72000 so‘m"
+        "message_id": 39,
+        "text": "🛒 Savat:\n• Coca Cola 1l x2 — 22000 so‘m\n\nJami: 22000 so‘m"
       }
     ],
-    "original_text": "🛒 Savat:\n• Hot Dog x4 — 72000 so‘m\n\nJami: 72000 so‘m",
+    "original_text": "🛒 Savat:\n• Coca Cola 1l x2 — 22000 so‘m\n\nJami: 22000 so‘m",
     "payment": "cash",
-    "otp": "95603"
+    "otp": "54058"
+  },
+  {
+    "order_number": 8,
+    "user_id": 6100584837,
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Hot Dog x2"
+    ],
+    "total": 36000,
+    "phone": "+998992861706",
+    "loc": "40.63064,72.53257",
+    "dt": "2025-11-21T16:53:06.715442+00:00",
+    "status": "Kanalda",
+    "user_msg": {
+      "chat_id": 6100584837,
+      "message_id": 2095
+    },
+    "admin_msgs": [
+      {
+        "admin_id": -1003357292759,
+        "chat_id": -1003357292759,
+        "message_id": 40,
+        "text": "🛒 Savat:\n• Hot Dog x2 — 36000 so‘m\n\nJami: 36000 so‘m"
+      }
+    ],
+    "original_text": "🛒 Savat:\n• Hot Dog x2 — 36000 so‘m\n\nJami: 36000 so‘m",
+    "payment": "cash",
+    "otp": "76258"
+  },
+  {
+    "order_number": 9,
+    "user_id": 6100584837,
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Fanta x1"
+    ],
+    "total": 7000,
+    "phone": "+998992861706",
+    "loc": "40.63006,72.53290",
+    "dt": "2025-11-21T16:57:21.338537+00:00",
+    "status": "Kanalda",
+    "user_msg": {
+      "chat_id": 6100584837,
+      "message_id": 2106
+    },
+    "admin_msgs": [
+      {
+        "admin_id": -1003357292759,
+        "chat_id": -1003357292759,
+        "message_id": 41,
+        "text": "🛒 Savat:\n• Fanta x1 — 7000 so‘m\n\nJami: 7000 so‘m"
+      }
+    ],
+    "original_text": "🛒 Savat:\n• Fanta x1 — 7000 so‘m\n\nJami: 7000 so‘m",
+    "payment": "cash",
+    "otp": "95318"
+  },
+  {
+    "order_number": 10,
+    "user_id": 6100584837,
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Coca Cola 1l x2"
+    ],
+    "total": 22000,
+    "phone": "+998992861706",
+    "loc": "40.63069,72.53258",
+    "dt": "2025-11-21T17:02:45.251811+00:00",
+    "status": "Kanalda",
+    "user_msg": {
+      "chat_id": 6100584837,
+      "message_id": 2117
+    },
+    "admin_msgs": [
+      {
+        "admin_id": -1003357292759,
+        "chat_id": -1003357292759,
+        "message_id": 42,
+        "text": "🛒 Savat:\n• Coca Cola 1l x2 — 22000 so‘m\n\nJami: 22000 so‘m"
+      }
+    ],
+    "original_text": "🛒 Savat:\n• Coca Cola 1l x2 — 22000 so‘m\n\nJami: 22000 so‘m",
+    "payment": "cash",
+    "otp": "35394"
+  },
+  {
+    "order_number": 11,
+    "user_id": 6100584837,
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Coca Cola 0.5l x3"
+    ],
+    "total": 27000,
+    "phone": "+998992861706",
+    "loc": "40.63068,72.53236",
+    "dt": "2025-11-21T18:16:44.221576+00:00",
+    "status": "Kanalda",
+    "user_msg": {
+      "chat_id": 6100584837,
+      "message_id": 2491
+    },
+    "admin_msgs": [
+      {
+        "admin_id": -1003357292759,
+        "chat_id": -1003357292759,
+        "message_id": 43,
+        "text": "🛒 Savat:\n• Coca Cola 0.5l x3 — 27000 so‘m\n\nJami: 27000 so‘m"
+      }
+    ],
+    "original_text": "🛒 Savat:\n• Coca Cola 0.5l x3 — 27000 so‘m\n\nJami: 27000 so‘m",
+    "payment": "cash",
+    "otp": "00272"
+  },
+  {
+    "order_number": 12,
+    "user_id": 6100584837,
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Burger x2"
+    ],
+    "total": 50000,
+    "phone": "+998992861706",
+    "loc": "40.63003,72.53291",
+    "dt": "2025-11-23T14:15:34.147695+00:00",
+    "status": "Yetkazib berildi",
+    "admin_msgs": [
+      {
+        "admin_id": -1003357292759,
+        "chat_id": -1003357292759,
+        "message_id": 44,
+        "text": "🛒 Savat:\n• Burger x2 — 50000 so‘m\n\nJami: 50000 so‘m"
+      }
+    ],
+    "original_text": "🛒 Savat:\n• Burger x2 — 50000 so‘m\n\nJami: 50000 so‘m",
+    "payment": "cash",
+    "otp": "29272",
+    "courier_id": 5444966029,
+    "courier_name": "doʻst 🦒",
+    "courier_msg": {
+      "chat_id": 5444966029,
+      "message_id": 2709
+    },
+    "collected_amount": 50000
+  },
+  {
+    "order_number": 13,
+    "user_id": 6100584837,
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Coca Cola 0.5l x3"
+    ],
+    "total": 27000,
+    "phone": "+998946821706",
+    "loc": "40.63679,72.53139",
+    "dt": "2025-11-23T15:08:33.292847+00:00",
+    "status": "Kanalda",
+    "admin_msgs": [
+      {
+        "admin_id": -1003357292759,
+        "chat_id": -1003357292759,
+        "message_id": 48,
+        "text": "🛒 Savat:\n• Coca Cola 0.5l x3 — 27000 so‘m\n\nJami: 27000 so‘m"
+      }
+    ],
+    "original_text": "🛒 Savat:\n• Coca Cola 0.5l x3 — 27000 so‘m\n\nJami: 27000 so‘m",
+    "payment": "cash",
+    "otp": "81243",
+    "returned_count": 1,
+    "last_returned_by": 5444966029,
+    "last_returned_at": "2025-11-23T15:13:32.245768+00:00"
+  },
+  {
+    "order_number": 14,
+    "user_id": 6100584837,
+    "user_name": "Sardorbek Fozilov",
+    "user_username": "foziljonovsardorbek",
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Coca Cola 1.5l x2"
+    ],
+    "total": 129692,
+    "phone": "+998946821706",
+    "loc": "40.63679,72.53139",
+    "dt": "2025-11-23T15:26:31.822901+00:00",
+    "status": "Kanalda",
+    "user_msg": {
+      "chat_id": 6100584837,
+      "message_id": 2860
+    },
+    "admin_msgs": [
+      {
+        "admin_id": -1003357292759,
+        "chat_id": -1003357292759,
+        "message_id": 49,
+        "text": "🛒 Savat:\n• Coca Cola 1.5l x2 — 129692 so‘m\n\nJami: 129692 so‘m"
+      }
+    ],
+    "original_text": "🛒 Savat:\n• Coca Cola 1.5l x2 — 129692 so‘m\n\nJami: 129692 so‘m",
+    "payment": "cash",
+    "otp": "71671"
+  },
+  {
+    "order_number": 15,
+    "user_id": 6100584837,
+    "user_name": "Sardorbek Fozilov",
+    "user_username": "foziljonovsardorbek",
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Coca Cola 1.5l x2"
+    ],
+    "total": 129692,
+    "phone": "+998946821706",
+    "loc": "40.63679,72.53139",
+    "dt": "2025-11-23T15:30:05.045571+00:00",
+    "status": "Kanalda",
+    "admin_msgs": [
+      {
+        "admin_id": -1003357292759,
+        "chat_id": -1003357292759,
+        "message_id": 54,
+        "text": "🛒 Savat:\n• Coca Cola 1.5l x2 — 129692 so‘m\n\nJami: 129692 so‘m"
+      }
+    ],
+    "original_text": "🛒 Savat:\n• Coca Cola 1.5l x2 — 129692 so‘m\n\nJami: 129692 so‘m",
+    "payment": "cash",
+    "otp": "75885",
+    "returned_count": 2,
+    "last_returned_by": 5444966029,
+    "last_returned_at": "2025-11-23T15:38:58.321289+00:00"
+  },
+  {
+    "order_number": 16,
+    "user_id": 6100584837,
+    "user_name": "Sardorbek Fozilov",
+    "user_username": "foziljonovsardorbek",
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Fanta x2"
+    ],
+    "total": 14000,
+    "phone": "+998946821706",
+    "loc": "40.63918,72.53102",
+    "dt": "2025-11-23T18:33:50.185075+00:00",
+    "status": "Kanalda",
+    "user_msg": {
+      "chat_id": 6100584837,
+      "message_id": 3860
+    },
+    "admin_msgs": [
+      {
+        "admin_id": -1003357292759,
+        "chat_id": -1003357292759,
+        "message_id": 55,
+        "text": "🛒 Savat:\n• Fanta x2 — 14000 so‘m\n\nJami: 14000 so‘m"
+      }
+    ],
+    "original_text": "🛒 Savat:\n• Fanta x2 — 14000 so‘m\n\nJami: 14000 so‘m",
+    "payment": "cash",
+    "paid": false,
+    "otp": "03733"
+  },
+  {
+    "order_number": 17,
+    "user_id": 6100584837,
+    "user_name": "Sardorbek Fozilov",
+    "user_username": "foziljonovsardorbek",
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Fanta x2"
+    ],
+    "total": 14000,
+    "phone": "+998946821706",
+    "loc": "40.63918,72.53102",
+    "dt": "2025-11-23T18:35:35.905128+00:00",
+    "status": "Kanalda",
+    "user_msg": {
+      "chat_id": 6100584837,
+      "message_id": 3895
+    },
+    "admin_msgs": [
+      {
+        "admin_id": -1003357292759,
+        "chat_id": -1003357292759,
+        "message_id": 56,
+        "text": "🛒 Savat:\n• Fanta x2 — 14000 so‘m\n\nJami: 14000 so‘m"
+      }
+    ],
+    "original_text": "🛒 Savat:\n• Fanta x2 — 14000 so‘m\n\nJami: 14000 so‘m",
+    "payment": "card",
+    "paid": false
+  },
+  {
+    "order_number": 18,
+    "user_id": 6100584837,
+    "user_name": "Sardorbek Fozilov",
+    "user_username": "foziljonovsardorbek",
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Fanta x2"
+    ],
+    "total": 14000,
+    "phone": "+998946821706",
+    "loc": "40.63062,72.53267",
+    "dt": "2025-11-23T19:08:11.689747+00:00",
+    "status": "Kanalda",
+    "user_msg": {
+      "chat_id": 6100584837,
+      "message_id": 3921
+    },
+    "admin_msgs": [
+      {
+        "admin_id": -1003357292759,
+        "chat_id": -1003357292759,
+        "message_id": 57,
+        "text": "🛒 Savat:\n• Fanta x2 — 14000 so‘m\n\nJami: 14000 so‘m"
+      }
+    ],
+    "original_text": "🛒 Savat:\n• Fanta x2 — 14000 so‘m\n\nJami: 14000 so‘m",
+    "payment": "card",
+    "paid": false
+  },
+  {
+    "order_number": 19,
+    "user_id": 6100584837,
+    "user_name": "Sardorbek Fozilov",
+    "user_username": "foziljonovsardorbek",
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Fanta x2"
+    ],
+    "total": 14000,
+    "phone": "+998901721274",
+    "loc": "40.63062,72.53257",
+    "dt": "2025-11-23T19:17:14.751877+00:00",
+    "status": "Qabul qilingan",
+    "admin_msgs": [
+      {
+        "admin_id": -1003357292759,
+        "chat_id": -1003357292759,
+        "message_id": 58,
+        "text": "🛒 Savat:\n• Fanta x2 — 14000 so‘m\n\nJami: 14000 so‘m"
+      }
+    ],
+    "original_text": "🛒 Savat:\n• Fanta x2 — 14000 so‘m\n\nJami: 14000 so‘m",
+    "payment": "card",
+    "paid": false,
+    "courier_id": 5444966029,
+    "courier_name": "doʻst 🦒",
+    "courier_msg": {
+      "chat_id": 5444966029,
+      "message_id": 3934
+    }
+  },
+  {
+    "order_number": 20,
+    "user_id": 6100584837,
+    "user_name": "Sardorbek Fozilov",
+    "user_username": "foziljonovsardorbek",
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Coca Cola 1.5l x4",
+      "Hot Dog x1"
+    ],
+    "total": 277384,
+    "phone": "+998901721274",
+    "loc": "40.63061,72.53274",
+    "dt": "2025-11-23T19:21:50.815271+00:00",
+    "status": "Yetkazib berildi",
+    "admin_msgs": [
+      {
+        "admin_id": -1003357292759,
+        "chat_id": -1003357292759,
+        "message_id": 60,
+        "text": "🛒 Savat:\n• Coca Cola 1.5l x4 — 259384 so‘m\n• Hot Dog x1 — 18000 so‘m\n\nJami: 277384 so‘m"
+      }
+    ],
+    "original_text": "🛒 Savat:\n• Coca Cola 1.5l x4 — 259384 so‘m\n• Hot Dog x1 — 18000 so‘m\n\nJami: 277384 so‘m",
+    "payment": "card",
+    "paid": false,
+    "otp": "31703",
+    "courier_id": 5444966029,
+    "courier_name": "doʻst 🦒",
+    "courier_msg": {
+      "chat_id": 5444966029,
+      "message_id": 3965
+    },
+    "receipt_photo": "AgACAgIAAxkBAAIPgmkjXwvVOzvegInC-yrE3LspGxpdAAKUEGsblvsZSaWGtwORz_REAQADAgADeQADNgQ",
+    "collected_amount": 277384
+  },
+  {
+    "order_number": 21,
+    "user_id": 6100584837,
+    "user_name": "Sardorbek Fozilov",
+    "user_username": "foziljonovsardorbek",
+    "user": "Sardorbek Fozilov (id: 6100584837)",
+    "items": [
+      "Fanta x1"
+    ],
+    "total": 7000,
+    "phone": "+998946821706",
+    "loc": "40.63054,72.53264",
+    "dt": "2025-11-23T20:07:30.809015+00:00",
+    "status": "Kutilyapti",
+    "user_msg": {
+      "chat_id": 6100584837,
+      "message_id": 4170
+    },
+    "admin_msgs": [],
+    "original_text": "🛒 Savat:\n• Fanta x1 — 7000 so‘m\n\nJami: 7000 so‘m",
+    "payment": "card",
+    "paid": false,
+    "otp": "18567"
   }
 ]

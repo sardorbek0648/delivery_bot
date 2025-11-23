@@ -1,0 +1,51 @@
+{
+  "Ichimliklar": {
+    "Coca Cola 0.5l": {
+      "price": 9000,
+      "desc": "Salqin ichimlik",
+      "photo": "AgACAgIAAxkBAAIJUGkgpL14_Ab86LW9RIImrF6hct4RAAKXEGsbFfsJSTeeAAHjkeNKUQEAAwIAA3gAAzYE"
+    },
+    "Coca Cola 1l": {
+      "price": 58,
+      "desc": "fttyftyjf",
+      "available": false,
+      "photo": "AgACAgIAAxkBAAIKBGkjEpeZIKNwl0bnPBJuHw7IeeS_AAIiDWsbTSgYSYhrzAv4e65dAQADAgADeQADNgQ"
+    },
+    "Coca Cola 1.5l": {
+      "price": 64846,
+      "desc": "Salqin ichimlik"
+    },
+    "Fanta": {
+      "price": 7000,
+      "desc": "jsiwdws"
+    },
+    "limon": {
+      "price": 5000,
+      "desc": "kasalikka qarshi kurashishga yordam beradi",
+      "available": true,
+      "photo": "AgACAgIAAxkBAAIJUGkgpL14_Ab86LW9RIImrF6hct4RAAKXEGsbFfsJSTeeAAHjkeNKUQEAAwIAA3gAAzYE"
+    }
+  },
+  "Fast Food": {
+    "Burger": {
+      "price": 25000,
+      "desc": "thrshrs",
+      "available": true
+    },
+    "Hot Dog": {
+      "price": 18000,
+      "desc": "Sosiska non ichida"
+    }
+  },
+  "Taomlar": {
+    "Palov": {
+      "price": 35000,
+      "desc": "gyugyug"
+    },
+    "Manti": {
+      "price": 30000,
+      "desc": "Bug‘da pishirilgan manti"
+    }
+  },
+  "burxonaka uchun": {}
+}
