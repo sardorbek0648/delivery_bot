@@ -1027,7 +1027,12 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
         # Admin: Menyuni tahrirlash -- open categories and product editor
         if data == "admin_edit_menu":
-            rows = [[InlineKeyboardButton(cat, callback_data=f"amenu_cat_{cat}")] for cat in menu_data.keys()]
+            rows = []
+            for cat in menu_data.keys():
+                rows.append([
+                    InlineKeyboardButton(cat, callback_data=f"amenu_cat_{cat}"),
+                    InlineKeyboardButton("🗑️", callback_data=f"amenu_delete_cat_{cat}")
+                ])
             rows.append([InlineKeyboardButton("➕ Kategoriya qo'shish", callback_data="amenu_add_category")])
             rows.append([InlineKeyboardButton('◀️ Bekor', callback_data='admin_panel')])
             try:
@@ -1089,6 +1094,36 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.answer(); return
             else:
                 await query.answer('Mahsulot topilmadi', show_alert=True); return
+
+        if data.startswith('amenu_delete_cat_'):
+            cat_to_delete = data.split('amenu_delete_cat_',1)[1]
+            if cat_to_delete in menu_data:
+                try:
+                    del menu_data[cat_to_delete]
+                    persist_menu()
+                    # refresh category views for users
+                    try:
+                        refresh_category_views(context, cat_to_delete)
+                    except Exception:
+                        pass
+                    # show success and return to category list
+                    rows = []
+                    for cat in menu_data.keys():
+                        rows.append([
+                            InlineKeyboardButton(cat, callback_data=f"amenu_cat_{cat}"),
+                            InlineKeyboardButton("🗑️", callback_data=f"amenu_delete_cat_{cat}")
+                        ])
+                    rows.append([InlineKeyboardButton("➕ Kategoriya qo'shish", callback_data="amenu_add_category")])
+                    rows.append([InlineKeyboardButton('◀️ Bekor', callback_data='admin_panel')])
+                    try:
+                        await query.edit_message_text(f"✅ Kategoriya '{cat_to_delete}' o'chirildi.\n\nMenyuni tahrirlash — kategoriya tanlang:", reply_markup=InlineKeyboardMarkup(rows))
+                    except Exception:
+                        pass
+                except Exception:
+                    await query.answer('Kategoriyani o\'chirishda xatolik', show_alert=True)
+            else:
+                await query.answer('Kategoriya topilmadi', show_alert=True)
+            await query.answer(); return
 
         if data.startswith('amenu_add_category'):
             ud['amenu_adding_category'] = True
