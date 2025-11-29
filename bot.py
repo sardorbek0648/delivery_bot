@@ -32,7 +32,8 @@ from telegram.ext import (
 )
 
 # ========== SOZLAMALAR ==========
-BOT_TOKEN = "8447079141:AAEekMNhdb0DK2E0fmcNEhr650VkBHFMCSY"   # <<< bu yerga o'zingizning tokenni qo'ying
+# Bot tokenni muhitdan o'qing (Heroku/GitHub Secrets uchun). Repo ichida saqlamang.
+BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 ADMIN_ID = 5788278697               # <<< asosiy admin id
 admins = {ADMIN_ID}
 
@@ -57,6 +58,34 @@ logging.basicConfig(
     level=logging.INFO,
 )
 log = logging.getLogger("dostavka_bot")
+
+# Track all bot-sent messages per private chat so we can purge on /start
+bot_messages_by_chat: dict[int, list[dict]] = {}
+
+def _record_bot_message(chat_id: int, message_id: int):
+    try:
+        if chat_id is None or message_id is None:
+            return
+        lst = bot_messages_by_chat.setdefault(int(chat_id), [])
+        lst.append({'chat_id': int(chat_id), 'message_id': int(message_id)})
+        if len(lst) > 300:
+            del lst[: len(lst) - 300]
+    except Exception:
+        pass
+
+async def _delete_all_bot_messages_for_chat(context: ContextTypes.DEFAULT_TYPE, chat_id: int):
+    try:
+        arr = bot_messages_by_chat.pop(int(chat_id), [])
+        for m in arr:
+            try:
+                await context.bot.delete_message(chat_id=m.get('chat_id'), message_id=m.get('message_id'))
+            except Exception:
+                try:
+                    await context.bot.edit_message_text(chat_id=m.get('chat_id'), message_id=m.get('message_id'), text='\u200b')
+                except Exception:
+                    pass
+    except Exception:
+        pass
 
 # ========== YUKLAMALAR VA SAQLASH UTILITYLARI ==========
 def load_json(fname, default):
@@ -719,15 +748,60 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user; user_id = user.id; first_name = user.first_name or "Foydalanuvchi"
     if user_id not in users:
         users.add(user_id); persist_users()
-    ud = context.user_data; ud.clear(); ud["cart"] = {}
-
-    # Admins: send only the admin panel and nothing else
-    if user_id in admins:
-        # Cleanup any stored admin-session messages from previous operations (best-effort)
+    ud = context.user_data
+    # Determine role early for correct cleanup ordering
+    is_admin = user_id in admins
+    # Best-effort: delete any prior bot messages/prompts for a clean start
+    try:
+        # For admins, clear admin prompts first (before wiping user_data)
+        if is_admin:
+            try:
+                await clear_admin_session(user_id, context, ud)
+            except Exception:
+                pass
+        # Clear user session messages (menus, history, prompts)
         try:
-            await clear_admin_session(user_id, context, ud)
+            await clear_user_session(user_id, context, ud)
         except Exception:
             pass
+        # Delete ANY bot-sent messages recorded for this chat (photos, texts, keyboards, etc.)
+        try:
+            await _delete_all_bot_messages_for_chat(context, user_id)
+        except Exception:
+            pass
+        # Also delete any cached category-view messages for this chat
+        try:
+            for (chat_id, cat), mid in list(last_category_messages.items()):
+                if chat_id == user_id:
+                    try:
+                        await context.bot.delete_message(chat_id=chat_id, message_id=mid)
+                    except Exception:
+                        # fallback: try to blank it if deletion fails
+                        try:
+                            await context.bot.edit_message_text(chat_id=chat_id, message_id=mid, text='\u200b')
+                        except Exception:
+                            pass
+                    finally:
+                        try:
+                            last_category_messages.pop((chat_id, cat), None)
+                        except Exception:
+                            pass
+        except Exception:
+            pass
+        # Optionally delete the user's /start command message to keep chat clean
+        try:
+            if update.message:
+                await update.message.delete()
+        except Exception:
+            pass
+    except Exception:
+        pass
+    # Now reset per-user state
+    ud.clear(); ud["cart"] = {}
+
+    # Admins: send only the admin panel and nothing else
+    if is_admin:
+        # Admin panel after cleanup
         try:
             await context.bot.send_message(chat_id=user_id, text="🔑 Admin panelga xush kelibsiz!", reply_markup=admin_panel_kb())
         except Exception as e:
@@ -1072,7 +1146,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 pass
             await query.answer(); return
 
-        if data.startswith('amenu_delete_'):
+        if data.startswith('amenu_delete_') and not data.startswith('amenu_delete_cat_'):
             rest = data.split('amenu_delete_',1)[1]
             if '|' not in rest:
                 await query.answer('Noto\'g\'ri buyruq', show_alert=True); return
@@ -1096,34 +1170,93 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.answer('Mahsulot topilmadi', show_alert=True); return
 
         if data.startswith('amenu_delete_cat_'):
-            cat_to_delete = data.split('amenu_delete_cat_',1)[1]
-            if cat_to_delete in menu_data:
-                try:
-                    del menu_data[cat_to_delete]
-                    persist_menu()
-                    # refresh category views for users
-                    try:
-                        refresh_category_views(context, cat_to_delete)
-                    except Exception:
-                        pass
-                    # show success and return to category list
-                    rows = []
-                    for cat in menu_data.keys():
-                        rows.append([
-                            InlineKeyboardButton(cat, callback_data=f"amenu_cat_{cat}"),
-                            InlineKeyboardButton("🗑️", callback_data=f"amenu_delete_cat_{cat}")
-                        ])
-                    rows.append([InlineKeyboardButton("➕ Kategoriya qo'shish", callback_data="amenu_add_category")])
-                    rows.append([InlineKeyboardButton('◀️ Bekor', callback_data='admin_panel')])
-                    try:
-                        await query.edit_message_text(f"✅ Kategoriya '{cat_to_delete}' o'chirildi.\n\nMenyuni tahrirlash — kategoriya tanlang:", reply_markup=InlineKeyboardMarkup(rows))
-                    except Exception:
-                        pass
-                except Exception:
-                    await query.answer('Kategoriyani o\'chirishda xatolik', show_alert=True)
-            else:
-                await query.answer('Kategoriya topilmadi', show_alert=True)
+            # Show confirmation prompt before deleting a category
+            cat_to_delete = data.split('amenu_delete_cat_', 1)[1]
+            kb = InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("✅ Ha, o'chirish", callback_data=f"amenu_confirm_delete_cat_{cat_to_delete}_yes"),
+                    InlineKeyboardButton("❌ Yo'q, bekor", callback_data=f"amenu_confirm_delete_cat_{cat_to_delete}_no"),
+                ]
+            ])
+            try:
+                await query.edit_message_text(
+                    f"Kategoriya '{cat_to_delete}' va ichidagi barcha mahsulotlar o'chirilsinmi?",
+                    reply_markup=kb,
+                )
+            except Exception:
+                pass
             await query.answer(); return
+
+        if data.startswith('amenu_confirm_delete_cat_'):
+            # Handle confirmation for deleting a category: yes/no
+            rest = data.split('amenu_confirm_delete_cat_', 1)[1]
+            try:
+                cat_name, decision = rest.rsplit('_', 1)
+            except Exception:
+                await query.answer('Noto\'g\'ri buyruq', show_alert=True); return
+
+            def _render_category_list_kb():
+                rows_local = []
+                for cat in menu_data.keys():
+                    rows_local.append([
+                        InlineKeyboardButton(cat, callback_data=f"amenu_cat_{cat}"),
+                        InlineKeyboardButton("🗑️", callback_data=f"amenu_delete_cat_{cat}")
+                    ])
+                rows_local.append([InlineKeyboardButton("➕ Kategoriya qo'shish", callback_data="amenu_add_category")])
+                rows_local.append([InlineKeyboardButton('◀️ Bekor', callback_data='admin_panel')])
+                return InlineKeyboardMarkup(rows_local)
+
+            if decision == 'yes':
+                if cat_name in menu_data:
+                    try:
+                        del menu_data[cat_name]
+                        persist_menu()
+                    except Exception as e:
+                        log.warning(f"Kategoriyani o'chirishda xato: {e}")
+                        await query.answer('Kategoriyani o\'chirishda xatolik', show_alert=True)
+                        return
+                    # Try refresh user category views tied to this category
+                    try:
+                        refresh_category_views(context, cat_name)
+                    except Exception:
+                        pass
+                    # Delete confirmation message and send fresh list
+                    try:
+                        await context.bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
+                    except Exception:
+                        pass
+                    try:
+                        await context.bot.send_message(chat_id=uid, text="Menyuni tahrirlash — kategoriya tanlang:", reply_markup=_render_category_list_kb())
+                    except Exception:
+                        # fallback: edit same message if delete failed
+                        try:
+                            await query.edit_message_text("Menyuni tahrirlash — kategoriya tanlang:", reply_markup=_render_category_list_kb())
+                        except Exception:
+                            pass
+                    await query.answer('✅ Kategoriya o\'chirildi')
+                    return
+                else:
+                    await query.answer('Kategoriya topilmadi', show_alert=True)
+                    return
+            elif decision == 'no':
+                # Delete confirmation message and return to list without changes
+                try:
+                    await context.bot.delete_message(chat_id=query.message.chat_id, message_id=query.message.message_id)
+                except Exception:
+                    pass
+                try:
+                    await context.bot.send_message(chat_id=uid, text="Menyuni tahrirlash — kategoriya tanlang:", reply_markup=_render_category_list_kb())
+                except Exception:
+                    # fallback to editing
+                    try:
+                        await query.edit_message_text("Menyuni tahrirlash — kategoriya tanlang:", reply_markup=_render_category_list_kb())
+                    except Exception:
+                        pass
+                await query.answer('Bekor qilindi')
+                return
+            else:
+                await query.answer('Noto\'g\'ri tanlov', show_alert=True)
+                return
 
         if data.startswith('amenu_add_category'):
             ud['amenu_adding_category'] = True
@@ -1204,6 +1337,26 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             rows.append([InlineKeyboardButton('◀️ Orqaga', callback_data='admin_mark_product'), InlineKeyboardButton('🔙 Admin panel', callback_data='admin_panel')])
             try:
                 await query.edit_message_text(f"{cat} — mahsulotlarni tanlang:", reply_markup=InlineKeyboardMarkup(rows))
+            except Exception:
+                pass
+            await query.answer(); return
+
+        if data.startswith('amark_prod_'):
+            # show product with buttons to mark available/unavailable
+            rest = data.split('amark_prod_',1)[1]
+            if '|' not in rest:
+                await query.answer('Noto\'g\'ri buyruq', show_alert=True); return
+            cat, prod = rest.split('|',1)
+            if cat not in menu_data or prod not in menu_data[cat]:
+                await query.answer('Mahsulot topilmadi', show_alert=True); return
+            info = menu_data[cat][prod]
+            current_status = "Bor" if info.get('available', True) else "Tugadi"
+            kb = InlineKeyboardMarkup([
+                [InlineKeyboardButton('✅ Bor', callback_data=f'amark_set_{cat}|{prod}_available'), InlineKeyboardButton('❌ Tugadi', callback_data=f'amark_set_{cat}|{prod}_unavailable')],
+                [InlineKeyboardButton('◀️ Orqaga', callback_data=f'amark_cat_{cat}')]
+            ])
+            try:
+                await query.edit_message_text(f"{prod}\n\nJoriy holat: {current_status}\n\nMahsulotni bor yoki tugadi deb belgilang:", reply_markup=kb)
             except Exception:
                 pass
             await query.answer(); return
@@ -3782,6 +3935,8 @@ async def location_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== ASOSIY FUNKSIYA ==========
 def main():
+    if not BOT_TOKEN:
+        raise RuntimeError("BOT_TOKEN topilmadi. Iltimos, muhit o'zgaruvchisini (env var) BOT_TOKEN sifatida o'rnating.")
     async def startup_reschedule(app):
         global order_counter
         if orders: order_counter = max((o.get("order_number", 0) for o in orders), default=0)
@@ -3792,18 +3947,130 @@ def main():
                     task = asyncio.create_task(handle_order_expiry(o["order_number"], app.bot))
                     expiry_tasks[o["order_number"]] = task
 
+    async def _run():
+        app = ApplicationBuilder().token(BOT_TOKEN).post_init(startup_reschedule).build()
+        app.add_handler(CommandHandler("start", start)); app.add_handler(CommandHandler("help", help_command))
+        app.add_handler(CallbackQueryHandler(callback_handler))
+        # Telegram Payments handlers
+        app.add_handler(PreCheckoutQueryHandler(precheckout_handler))
+        app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
+        app.add_handler(MessageHandler(filters.CONTACT, contact_handler)); app.add_handler(MessageHandler(filters.LOCATION, location_handler))
+        # Accept all message types here so admin broadcasts containing media are handled
+        app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, text_handler))
+        # Explicit initialization to avoid ExtBot initialization errors
+        await app.initialize()
+        # Wrap common send methods to record bot-sent messages for cleanup
+        try:
+            bot = app.bot
+            # send_message
+            _orig_send_message = bot.send_message
+            async def _wrapped_send_message(*args, **kwargs):
+                msg = await _orig_send_message(*args, **kwargs)
+                try:
+                    if getattr(msg.chat, 'type', None) == 'private':
+                        _record_bot_message(msg.chat_id, msg.message_id)
+                except Exception:
+                    pass
+                return msg
+            bot.send_message = _wrapped_send_message  # type: ignore
 
+            # send_photo
+            _orig_send_photo = bot.send_photo
+            async def _wrapped_send_photo(*args, **kwargs):
+                msg = await _orig_send_photo(*args, **kwargs)
+                try:
+                    if getattr(msg.chat, 'type', None) == 'private':
+                        _record_bot_message(msg.chat_id, msg.message_id)
+                except Exception:
+                    pass
+                return msg
+            bot.send_photo = _wrapped_send_photo  # type: ignore
 
-    app = ApplicationBuilder().token(BOT_TOKEN).post_init(startup_reschedule).build()
-    app.add_handler(CommandHandler("start", start)); app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CallbackQueryHandler(callback_handler))
-    # Telegram Payments handlers
-    app.add_handler(PreCheckoutQueryHandler(precheckout_handler))
-    app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
-    app.add_handler(MessageHandler(filters.CONTACT, contact_handler)); app.add_handler(MessageHandler(filters.LOCATION, location_handler))
-    # Accept all message types here so admin broadcasts containing media are handled
-    app.add_handler(MessageHandler(filters.ALL & ~filters.COMMAND, text_handler))
-    log.info("Bot ishga tushdi."); app.run_polling()
+            # send_document
+            _orig_send_document = bot.send_document
+            async def _wrapped_send_document(*args, **kwargs):
+                msg = await _orig_send_document(*args, **kwargs)
+                try:
+                    if getattr(msg.chat, 'type', None) == 'private':
+                        _record_bot_message(msg.chat_id, msg.message_id)
+                except Exception:
+                    pass
+                return msg
+            bot.send_document = _wrapped_send_document  # type: ignore
+
+            # send_sticker
+            _orig_send_sticker = bot.send_sticker
+            async def _wrapped_send_sticker(*args, **kwargs):
+                msg = await _orig_send_sticker(*args, **kwargs)
+                try:
+                    if getattr(msg.chat, 'type', None) == 'private':
+                        _record_bot_message(msg.chat_id, msg.message_id)
+                except Exception:
+                    pass
+                return msg
+            bot.send_sticker = _wrapped_send_sticker  # type: ignore
+
+            # forward_message
+            _orig_forward_message = bot.forward_message
+            async def _wrapped_forward_message(*args, **kwargs):
+                msg = await _orig_forward_message(*args, **kwargs)
+                try:
+                    if getattr(msg.chat, 'type', None) == 'private':
+                        _record_bot_message(msg.chat_id, msg.message_id)
+                except Exception:
+                    pass
+                return msg
+            bot.forward_message = _wrapped_forward_message  # type: ignore
+
+            # send_media_group (returns list of Messages)
+            _orig_send_media_group = bot.send_media_group
+            async def _wrapped_send_media_group(*args, **kwargs):
+                msgs = await _orig_send_media_group(*args, **kwargs)
+                try:
+                    for m in msgs or []:
+                        if getattr(m.chat, 'type', None) == 'private':
+                            _record_bot_message(m.chat_id, m.message_id)
+                except Exception:
+                    pass
+                return msgs
+            bot.send_media_group = _wrapped_send_media_group  # type: ignore
+
+            # send_invoice
+            _orig_send_invoice = bot.send_invoice
+            async def _wrapped_send_invoice(*args, **kwargs):
+                msg = await _orig_send_invoice(*args, **kwargs)
+                try:
+                    if getattr(msg.chat, 'type', None) == 'private':
+                        _record_bot_message(msg.chat_id, msg.message_id)
+                except Exception:
+                    pass
+                return msg
+            bot.send_invoice = _wrapped_send_invoice  # type: ignore
+        except Exception as e:
+            log.warning(f"Bot send wrappers init failed: {e}")
+        try:
+            await app.start()
+            log.info("Bot ishga tushdi.")
+            await app.updater.start_polling()
+            # Keep the application running
+            stop_event = asyncio.Event()
+            try:
+                await stop_event.wait()
+            except asyncio.CancelledError:
+                pass
+        finally:
+            try:
+                # Ensure polling stops before shutdown
+                try:
+                    await app.updater.stop()
+                except Exception:
+                    pass
+                await app.stop()
+            finally:
+                await app.shutdown()
+
+    # Run the async runner
+    asyncio.run(_run())
 
 if __name__ == "__main__":
     main()
