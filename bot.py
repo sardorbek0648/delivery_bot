@@ -32,8 +32,7 @@ from telegram.ext import (
 )
 
 # ========== SOZLAMALAR ==========
-# Bot tokenni muhitdan o'qing (Heroku/GitHub Secrets uchun). Repo ichida saqlamang.
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+BOT_TOKEN = "8447079141:AAEekMNhdb0DK2E0fmcNEhr650VkBHFMCSY"   # <<< bu yerga o'zingizning tokenni qo'ying
 ADMIN_ID = 5788278697               # <<< asosiy admin id
 admins = {ADMIN_ID}
 
@@ -3935,8 +3934,6 @@ async def location_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ========== ASOSIY FUNKSIYA ==========
 def main():
-    if not BOT_TOKEN:
-        raise RuntimeError("BOT_TOKEN topilmadi. Iltimos, muhit o'zgaruvchisini (env var) BOT_TOKEN sifatida o'rnating.")
     async def startup_reschedule(app):
         global order_counter
         if orders: order_counter = max((o.get("order_number", 0) for o in orders), default=0)
